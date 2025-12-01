@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" >
+
+    <xacro:property name="depth_camera_length" value="0.01" />
+    <xacro:property name="depth_camera_width" value="0.1" />
+    <xacro:property name="depth_camera_height" value="0.03" />
+
+    <joint name="base_front_depth_camera_joint" type="fixed">
+        <parent link="base_front_link" />
+        <child link="depth_camera_link" />
+        <origin xyz="${(boundary_thickness + depth_camera_length) / 2.0} 0 ${(base_height + 2.0 * boundary_thickness) * 1.0 / 6.0}" rpy="0 0 0" />
+    </joint>
+
+    <link name="depth_camera_link">
+        <visual>
+            <geometry>
+                <box size="${depth_camera_length} ${depth_camera_width} ${depth_camera_height}" />
+            </geometry>
+            <material name="dark_gray" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
+        </visual>
+        <collision>
+            <geometry>
+                <box size="${depth_camera_length} ${depth_camera_width} ${depth_camera_height}" />
+            </geometry>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+        </collision>
+        <xacro:box_inertial mass="0.1" size="${depth_camera_length} ${depth_camera_width} ${depth_camera_height}" origin_xyz="0 0 0" origin_rpy="0 0 0"/>
+    </link>
+
+    <gazebo reference="depth_camera_link">
+        <sensor name="depth_camera" type="depth_camera">
+            <depth_camera>
+                <horizontal_fov>1.3962634</horizontal_fov>
+                <camera_info>
+                    <width>320</width>
+                    <height>240</height>
+                    <K>700 0 960 0 700 540 0 0 1</K>
+                    <D>0 0 0 0 0</D>
+                    <distortion_model>plumb_bob</distortion_model>
+                </camera_info>
+                <clip>
+                    <near>0.1</near>
+                    <far>100</far>
+                </clip>
+                <noise>
+                    <type>gaussian</type>
+                    <mean>0.0</mean>
+                    <stddev>0.007</stddev>
+                </noise>
+            </depth_camera>
+            <frame_id>depth_camera_link</frame_id>
+            <always_on>1</always_on>
+            <update_rate>30</update_rate>
+            <visualize>true</visualize>
+            <topic>depth_camera</topic>
+        </sensor>
+    </gazebo>
+
+</robot>

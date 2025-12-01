@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <gazebo reference="rear_left_caster_wheel">
+        <mu1 value="0.1"/>
+        <mu2 value="0.1"/>
+    </gazebo>
+
+    <gazebo reference="rear_right_caster_wheel">
+        <mu1 value="0.1"/>
+        <mu2 value="0.1"/>
+    </gazebo>
+
+    <gazebo reference="front_left_caster_wheel">
+        <mu1 value="0.1"/>
+        <mu2 value="0.1"/>
+    </gazebo>
+
+    <gazebo reference="front_right_caster_wheel">
+        <mu1 value="0.1"/>
+        <mu2 value="0.1"/>
+    </gazebo>
+    
+    <xacro:if value="$(arg is_gz)" >
+        <!-- <gazebo>
+            <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
+                <left_joint>base_left_wheel_joint</left_joint>
+                <right_joint>base_right_wheel_joint</right_joint>
+                <wheel_separation>${base_width - (wheel_length + epsilon)}</wheel_separation>
+                <wheel_radius>${wheel_radius}</wheel_radius>
+                <odom_publish_frequency>50</odom_publish_frequency>
+                <frame_id>odom</frame_id>
+                <child_frame_id>base_footprint</child_frame_id>
+                <topic>/cmd_vel</topic>
+                <odom_topic>/odometry</odom_topic>
+                <tf_topic>/tf</tf_topic>
+            </plugin>
+        </gazebo> -->
+
+        <!-- <gazebo>
+            <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">
+                <joint_name>base_left_wheel_joint</joint_name>
+                <joint_name>base_right_wheel_joint</joint_name>
+                <topic>/joint_states</topic>
+            </plugin>
+        </gazebo> -->
+
+        <gazebo>
+            <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin" >
+                <parameters>$(find mobile_robot_controller)/config/mobile_robot_controllers.yaml</parameters>
+                <controller_manager_node_name>controller_manager</controller_manager_node_name>
+                <ros>
+                    <remapping>/diff_drive_base_controller/cmd_vel:=/cmd_vel</remapping>
+                    <remapping>/diff_drive_base_controller/odom:=/odom</remapping>
+                </ros>
+            </plugin>
+        </gazebo>
+    </xacro:if>
+
+    <xacro:unless value="$(arg is_gz)">
+        <!-- <gazebo>
+            <plugin filename="ignition-gazebo-diff-drive-system" name="ignition::gazebo::systems::DiffDrive">
+                <left_joint>base_left_wheel_joint</left_joint>
+                <right_joint>base_right_wheel_joint</right_joint>
+                <wheel_separation>${base_width - (wheel_length + epsilon)}</wheel_separation>
+                <wheel_radius>${wheel_radius}</wheel_radius>
+                <odom_publish_frequency>50</odom_publish_frequency>
+                <frame_id>odom</frame_id>
+                <child_frame_id>base_footprint</child_frame_id>
+                <topic>/cmd_vel</topic>
+                <odom_topic>/odometry</odom_topic>
+                <tf_topic>/tf</tf_topic>
+            </plugin>
+        </gazebo> -->
+
+        <!-- <gazebo>
+            <plugin filename="ignition-gazebo-joint-state-publisher-system" name="ignition::gazebo::systems::JointStatePublisher">
+                <joint_name>base_left_wheel_joint</joint_name>
+                <joint_name>base_right_wheel_joint</joint_name>
+                <topic>/joint_states</topic>
+            </plugin>
+        </gazebo> -->
+
+        <gazebo>
+            <plugin filename="ign_ros2_control-system" name="ign_ros2_control::IgnitionROS2ControlPlugin" >
+                <parameters>$(find mobile_robot_controller)/config/mobile_robot_controllers.yaml</parameters>
+                <controller_manager_node_name>controller_manager</controller_manager_node_name>
+                <ros>
+                    <remapping>/diff_drive_base_controller/cmd_vel:=/cmd_vel</remapping>
+                    <remapping>/diff_drive_base_controller/odom:=/odom</remapping>
+                </ros>
+            </plugin>
+        </gazebo>
+    </xacro:unless>
+
+    
+
+</robot>
