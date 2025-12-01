@@ -59,6 +59,7 @@ scene = gs.Scene(
         gravity=(0.0, 0.0, -9.81),
     ),
     renderer=gs.renderers.Rasterizer(),
+    # renderer=gs.renderers.RayTracer(),
 )
 
 plane = scene.add_entity(
@@ -109,17 +110,65 @@ cam.attach(
 
 scene.build(n_envs=0)
 
+############ Optional: set control gains ############
+# set positional gains
+franka.set_dofs_kp(
+    # kp             = np.array([4500, 4500, 3500, 3500, 2000, 2000, 2000, 100, 100]),
+    kp             = np.array([1500, 1500, 1000, 1000, 500, 500, 500, 10, 10]),
+    dofs_idx_local = dofs_idx,
+)
+# set velocity gains
+franka.set_dofs_kv(
+    kv             = np.array([450, 450, 350, 350, 200, 200, 200, 10, 10]),
+    dofs_idx_local = dofs_idx,
+)
+# set force range for safety
+franka.set_dofs_force_range(
+    # lower          = np.array([-87, -87, -87, -87, -12, -12, -12, -100, -100]),
+    # upper          = np.array([ 87,  87,  87,  87,  12,  12,  12,  100,  100]),
+    lower          = np.array([-77, -77, -77, -77, -12, -12, -12, -100, -100]),
+    upper          = np.array([ 77,  77,  77,  77,  12,  12,  12,  100,  100]),
+    dofs_idx_local = dofs_idx,
+)
+
 
 # Retrieve some commonly used handles
 rigid_solver = scene.sim.rigid_solver # low-level rigid body solver
 end_effector = franka.get_link("hand") # Franka gripper frame
 cube_link = cube.get_link("box_baselink") # the link we want to pick
 
+################ Reach straight pose ################
+franka.control_dofs_position(
+    np.array([0, 0, 0, 0, 0, 0, 0, 0.04, 0.04]),
+    dofs_idx,
+)
+
+for i in range(200):
+    scene.step()
+    # cam.render()
+
 
 ################ Reach pre-grasp pose ################
 q_pregrasp = franka.inverse_kinematics(
     link=end_effector,
-    pos=np.array([0.65, 0.0, 0.13]), # just above the cube
+    pos=np.array([0.65, 0.0, 0.5]), # just above the cube
+    quat=np.array([0, 1, 0, 0]), # down-facing orientation
+)
+print(f"q_pregrasp: {q_pregrasp}")
+
+franka.control_dofs_position(
+    q_pregrasp[:-2], # arm joints only
+    dofs_idx[:-2],
+    # np.arange(7),
+)
+
+for i in range(200):
+    scene.step()
+    # cam.render()
+
+q_pregrasp = franka.inverse_kinematics(
+    link=end_effector,
+    pos=np.array([0.65, 0.0, 0.22]), # just above the cube
     quat=np.array([0, 1, 0, 0]), # down-facing orientation
 )
 print(f"q_pregrasp: {q_pregrasp}")
@@ -127,10 +176,53 @@ print(f"q_pregrasp: {q_pregrasp}")
 franka.control_dofs_position(
     q_pregrasp[:-2],
     dofs_idx[:-2],
-    # np.arange(7),
 )
 
-for i in range(1000):
+for i in range(200):
     scene.step()
     # cam.render()
 
+################ Attach (activate suction) ################
+weld_links_target = np.array([cube_link.idx], dtype=gs.np_int)
+weld_links_handle = np.array([end_effector.idx], dtype=gs.np_int)
+rigid_solver.add_weld_constraint(weld_links_target, weld_links_handle)
+
+
+################ Lift and transport ################
+q_lift = franka.inverse_kinematics(
+    link=end_effector,
+    pos=np.array([0.65, 0.0, 0.7]), # just above the cube
+    quat=np.array([0, 1, 0, 0]), # down-facing orientation
+)
+
+franka.control_dofs_position(
+    q_lift[:-2],
+    dofs_idx[:-2]
+)
+
+for i in range(200):
+    scene.step()
+    # cam.render()
+
+q_place = franka.inverse_kinematics(
+    link=end_effector,
+    pos=np.array([0.65, 0.65, 0.2]), # target place pose
+    quat = np.array([0, 1, 0, 0]),
+)
+
+franka.control_dofs_position(
+    q_place[:-2],
+    dofs_idx[:-2],
+)
+
+for i in range(200):
+    scene.step()
+    # cam.render()
+
+
+################ Detach (release suction) ################
+rigid_solver.delete_weld_constraint(weld_links_target, weld_links_handle)
+
+for i in range(400):
+    scene.step()
+    # cam.render()
